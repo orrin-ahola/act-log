@@ -53,19 +53,25 @@ def save_submissions(submissions):
             'parents': [FOLDER_ID],
             'mimeType': 'application/json'
         }
+
+        # Write the JSON data to a file-like object
         file_data = io.BytesIO(json.dumps(submissions).encode())
+        file_data.seek(0)  # Reset file pointer to the beginning
+
+        # Use MediaIoBaseUpload instead of MediaFileUpload for a BytesIO object
+        from googleapiclient.http import MediaIoBaseUpload
+        media = MediaIoBaseUpload(file_data, mimetype='application/json')
 
         if files:
             # Update the existing file
             file_id = files[0]['id']
-            media = MediaFileUpload(file_data, mimetype='application/json')
             drive_service.files().update(fileId=file_id, media_body=media).execute()
         else:
             # Create a new file
-            media = MediaFileUpload(file_data, mimetype='application/json')
             drive_service.files().create(body=file_metadata, media_body=media).execute()
     except Exception as e:
         print(f"Error saving submissions: {e}")
+
 
 
 def submit_form():

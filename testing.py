@@ -6,15 +6,20 @@ from datetime import datetime
 import io
 import json
 
-# Google Drive setup
-SERVICE_ACCOUNT_FILE = '/home/orrin/PycharmProjects/act-log/act-log-006dc2903420.json'  # Replace with your service account JSON file path
-SCOPES = ['https://www.googleapis.com/auth/drive']
-FOLDER_ID = '1lZgB4eAXuWyvf3-QyYB-X3OgwsgoXHT9'  # Replace with the ID of your Google Drive folder
-JSON_FILE_NAME = 'submissions.json'
+# Load secrets
+secrets = st.secrets["google"]
 
-credentials = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+# Parse the credentials JSON
+credentials_info = json.loads(st.secrets["google"]["credentials"])
+
+# Google Drive setup
+SCOPES = ['https://www.googleapis.com/auth/drive']
+JSON_FILE_NAME = 'submissions.json'
+credentials = Credentials.from_service_account_info(credentials_info)
 drive_service = build('drive', 'v3', credentials=credentials)
 
+# Google Drive folder ID
+FOLDER_ID = st.secrets["google"]["folder_id"]
 
 # Load submissions from Google Drive
 def load_submissions():
@@ -53,19 +58,25 @@ def save_submissions(submissions):
             'parents': [FOLDER_ID],
             'mimeType': 'application/json'
         }
+
+        # Write the JSON data to a file-like object
         file_data = io.BytesIO(json.dumps(submissions).encode())
+        file_data.seek(0)  # Reset file pointer to the beginning
+
+        # Use MediaIoBaseUpload instead of MediaFileUpload for a BytesIO object
+        from googleapiclient.http import MediaIoBaseUpload
+        media = MediaIoBaseUpload(file_data, mimetype='application/json')
 
         if files:
             # Update the existing file
             file_id = files[0]['id']
-            media = MediaFileUpload(file_data, mimetype='application/json')
             drive_service.files().update(fileId=file_id, media_body=media).execute()
         else:
             # Create a new file
-            media = MediaFileUpload(file_data, mimetype='application/json')
             drive_service.files().create(body=file_metadata, media_body=media).execute()
     except Exception as e:
         print(f"Error saving submissions: {e}")
+
 
 
 def submit_form():
