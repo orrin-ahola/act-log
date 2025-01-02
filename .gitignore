@@ -1,0 +1,9 @@
+act-log-006dc2903420.json
+.streamlit/secrets.toml
+
+venv/
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
